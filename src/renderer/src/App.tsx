@@ -7,6 +7,8 @@ import React, { Suspense, lazy } from 'react'
 import { HashRouter, Routes, Route } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import { AppLayout } from '@/components/layout/AppLayout'
+import { useTheme } from '@/hooks/use-theme'
+import { useSettings } from '@/hooks/use-settings'
 
 // Lazy-load pages for better startup performance
 const Dashboard = lazy(() => import('@/pages/Dashboard'))
@@ -24,6 +26,9 @@ function PageLoader() {
 }
 
 export default function App() {
+  useSettings()   // load settings on startup
+  useTheme()      // apply theme to DOM
+
   return (
     <HashRouter>
       <Routes>

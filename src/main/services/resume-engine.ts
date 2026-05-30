@@ -95,6 +95,7 @@ export class ResumeEngine extends EventEmitter {
       progress: t.progress,
       bytesTransferred: t.bytesTransferred,
       direction: t.direction as any,
+      connectionMode: t.connectionMode ?? 'remote',
       chunkSize: t.chunkSize,
       totalChunks: t.totalChunks,
       completedChunks: t.completedChunks,

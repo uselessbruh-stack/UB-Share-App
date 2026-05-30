@@ -1,17 +1,21 @@
 // ===================================================================
-// UB-Share — Transfer History (v4 — with duration, responsive)
+// UB-Share — Transfer History (v5 — connection mode filter + badge)
 // ===================================================================
 
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
-import { History, Search, Trash2, CheckCircle2, XCircle, Ban, Filter, ArrowUp, ArrowDown, Clock } from 'lucide-react'
+import {
+  History, Search, Trash2, CheckCircle2, XCircle, Ban, Filter,
+  ArrowUp, ArrowDown, Clock, Wifi, Bluetooth, Globe
+} from 'lucide-react'
 import { PageHeader, EmptyState, StatusBadge } from '@/components/shared/SharedComponents'
 import { useTransfers } from '@/hooks/use-transfers'
 import { formatFileSize, formatSpeed, formatRelativeTime, formatDuration } from '@/lib/format'
 import { staggerContainer, fadeUpVariants, listItemVariants } from '@/lib/animations'
-import type { TransferStatus } from '@shared/types'
+import type { TransferStatus, ConnectionMode } from '@shared/types'
 
-type HistoryFilter = 'all' | 'completed' | 'failed' | 'cancelled'
+type StatusFilter = 'all' | 'completed' | 'failed' | 'cancelled'
+type ModeFilter = 'all' | ConnectionMode
 
 function getTransferDuration(transfer: { createdAt: number; completedAt?: number }): string {
   if (!transfer.completedAt) return ''
@@ -21,20 +25,35 @@ function getTransferDuration(transfer: { createdAt: number; completedAt?: number
   return formatDuration(seconds)
 }
 
+const modeLabels: Record<ConnectionMode, { label: string; icon: React.ElementType }> = {
+  local: { label: 'Local', icon: Wifi },
+  nearby: { label: 'Nearby', icon: Bluetooth },
+  remote: { label: 'Remote', icon: Globe }
+}
+
 export default function TransferHistory() {
   const { transferHistory, clearHistory, retryTransfer } = useTransfers()
-  const [filter, setFilter] = useState<HistoryFilter>('all')
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [modeFilter, setModeFilter] = useState<ModeFilter>('all')
   const [search, setSearch] = useState('')
 
   const filtered = transferHistory
-    .filter((t) => filter === 'all' || t.status === filter)
+    .filter((t) => statusFilter === 'all' || t.status === statusFilter)
+    .filter((t) => modeFilter === 'all' || (t.connectionMode ?? 'remote') === modeFilter)
     .filter((t) => t.filename.toLowerCase().includes(search.toLowerCase()) || (t.peerName ?? '').toLowerCase().includes(search.toLowerCase()))
 
-  const filters: { key: HistoryFilter; label: string; icon: React.FC<{ className?: string }> }[] = [
+  const statusFilters: { key: StatusFilter; label: string; icon: React.FC<{ className?: string }> }[] = [
     { key: 'all', label: 'All', icon: Filter },
     { key: 'completed', label: 'Completed', icon: CheckCircle2 },
     { key: 'failed', label: 'Failed', icon: XCircle },
     { key: 'cancelled', label: 'Cancelled', icon: Ban }
+  ]
+
+  const modeFilters: { key: ModeFilter; label: string; icon: React.FC<{ className?: string }> }[] = [
+    { key: 'all', label: 'All Modes', icon: Filter },
+    { key: 'local', label: 'Local', icon: Wifi },
+    { key: 'nearby', label: 'Nearby', icon: Bluetooth },
+    { key: 'remote', label: 'Remote', icon: Globe }
   ]
 
   return (
@@ -48,15 +67,27 @@ export default function TransferHistory() {
         }
       />
 
-      <motion.div variants={fadeUpVariants} className="flex flex-wrap items-center gap-3 mb-6">
-        <div className="relative flex-1 min-w-[180px]">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[hsl(0,0%,30%)]" />
-          <input type="text" placeholder="Search by filename or peer..." value={search}
-            onChange={(e) => setSearch(e.target.value)} className="input-search" />
+      {/* Filters */}
+      <motion.div variants={fadeUpVariants} className="space-y-3 mb-6">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative flex-1 min-w-[180px]">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[hsl(0,0%,30%)]" />
+            <input type="text" placeholder="Search by filename or peer..." value={search}
+              onChange={(e) => setSearch(e.target.value)} className="input-search" />
+          </div>
+          <div className="tab-bar shrink-0">
+            {statusFilters.map(({ key, label, icon: Icon }) => (
+              <button key={key} onClick={() => setStatusFilter(key)} className={`tab-item ${statusFilter === key ? 'active' : ''}`}>
+                <Icon className="w-3 h-3" /> {label}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="tab-bar shrink-0">
-          {filters.map(({ key, label, icon: Icon }) => (
-            <button key={key} onClick={() => setFilter(key)} className={`tab-item ${filter === key ? 'active' : ''}`}>
+
+        {/* Connection Mode Filter */}
+        <div className="tab-bar">
+          {modeFilters.map(({ key, label, icon: Icon }) => (
+            <button key={key} onClick={() => setModeFilter(key)} className={`tab-item ${modeFilter === key ? 'active' : ''}`}>
               <Icon className="w-3 h-3" /> {label}
             </button>
           ))}
@@ -68,6 +99,8 @@ export default function TransferHistory() {
           <div className="space-y-1">
             {filtered.map((transfer, i) => {
               const duration = getTransferDuration(transfer)
+              const mode = transfer.connectionMode ?? 'remote'
+              const ModeIcon = modeLabels[mode].icon
               return (
                 <motion.div key={transfer.id} variants={listItemVariants} initial="hidden" animate="visible" custom={i}
                   className="flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-[hsl(0,0%,10%)] transition-all group">
@@ -83,11 +116,15 @@ export default function TransferHistory() {
                   <div className="flex-1 min-w-0">
                     <p className="text-[13px] font-medium text-[hsl(0,0%,90%)] truncate">{transfer.filename}</p>
                     <p className="text-[11px] text-[hsl(0,0%,45%)] mt-0.5 truncate">
-                      {formatFileSize(transfer.fileSize)}
+                      {transfer.peerName || 'Peer'} · {formatFileSize(transfer.fileSize)}
                       {transfer.status === 'completed' && transfer.speed > 0 && <> · {formatSpeed(transfer.speed)}</>}
                       {duration && <> · <Clock className="w-3 h-3 inline-block -mt-[1px]" /> {duration}</>}
                     </p>
                   </div>
+                  <span className={`connection-mode-badge ${mode}`}>
+                    <ModeIcon className="w-3 h-3" />
+                    {modeLabels[mode].label}
+                  </span>
                   <StatusBadge status={transfer.status} />
                   <span className="text-[11px] text-[hsl(0,0%,35%)] shrink-0">{formatRelativeTime(transfer.updatedAt)}</span>
                   {transfer.status === 'failed' && (
@@ -100,8 +137,8 @@ export default function TransferHistory() {
               )
             })}
           </div>
-        ) : search || filter !== 'all' ? (
-          <EmptyState icon={Search} title="No matching transfers" description="Try adjusting your search or filter" />
+        ) : search || statusFilter !== 'all' || modeFilter !== 'all' ? (
+          <EmptyState icon={Search} title="No matching transfers" description="Try adjusting your search or filters" />
         ) : (
           <EmptyState icon={History} title="No transfer history" description="Completed, failed, and cancelled transfers will appear here." />
         )}

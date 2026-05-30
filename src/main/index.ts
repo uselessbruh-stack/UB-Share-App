@@ -9,11 +9,11 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { initDatabase, closeDatabase } from './db/database'
 import { initSettings, getSettings } from './services/settings-service'
 import { signalingClient } from './services/signaling-client'
+import { discoveryManager } from './services/discovery/discovery-manager'
 import { transferManager } from './services/transfer-manager'
 import { registerIpcHandlers, setupSignalingForwarding } from './ipc/ipc-handlers'
 import { sharedFilesRepository } from './db/repositories/shared-files-repository'
 import { APP_INFO, IPC_CHANNELS } from '@shared/constants'
-import { v4 as uuidv4 } from 'uuid'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -94,12 +94,13 @@ app.whenReady().then(async () => {
     console.log('[App] Initializing database...')
     initDatabase()
 
-    // 2. Initialize settings
+    // 2. Initialize settings (generates persistent peerId on first run)
     console.log('[App] Initializing settings...')
     const settings = await initSettings()
 
-    // 3. Generate or retrieve peer ID
-    peerId = uuidv4()
+    // 3. Use persistent peer ID from settings
+    peerId = settings.peerId
+    console.log(`[App] Peer ID: ${peerId}`)
 
     // 4. Register IPC handlers
     console.log('[App] Registering IPC handlers...')
@@ -127,7 +128,21 @@ app.whenReady().then(async () => {
       }))
     )
 
-    // 8. Create window
+    // 8. Configure and start discovery
+    console.log('[App] Starting discovery...')
+    discoveryManager.local.configure(peerId, settings.displayName)
+    await discoveryManager.startModule('remote')
+    // Local discovery starts on demand from the UI
+
+    // Forward discovery events to renderer
+    discoveryManager.on('peers-updated', (peers) => {
+      const windows = BrowserWindow.getAllWindows()
+      for (const win of windows) {
+        win.webContents.send(IPC_CHANNELS.DISCOVERY_PEERS_UPDATED, peers)
+      }
+    })
+
+    // 9. Create window
     createWindow()
 
     console.log('[App] UB-Share started successfully')
@@ -148,8 +163,9 @@ app.on('window-all-closed', () => {
   }
 })
 
-app.on('before-quit', () => {
+app.on('before-quit', async () => {
   console.log('[App] Shutting down...')
+  await discoveryManager.stopAll()
   signalingClient.disconnect()
   closeDatabase()
 })

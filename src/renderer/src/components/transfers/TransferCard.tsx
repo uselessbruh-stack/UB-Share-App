@@ -4,11 +4,17 @@
 
 import React from 'react'
 import { motion } from 'framer-motion'
-import { Pause, Play, X, RotateCcw, ArrowUp, ArrowDown } from 'lucide-react'
+import { Pause, Play, X, RotateCcw, ArrowUp, ArrowDown, Wifi, Bluetooth, Globe } from 'lucide-react'
 import { StatusBadge } from '@/components/shared/SharedComponents'
 import { formatFileSize, formatSpeed, formatDuration } from '@/lib/format'
 import { listItemVariants } from '@/lib/animations'
-import type { TransferRecord } from '@shared/types'
+import type { TransferRecord, ConnectionMode } from '@shared/types'
+
+const modeConfig: Record<ConnectionMode, { label: string; icon: React.ElementType }> = {
+  local: { label: 'Local', icon: Wifi },
+  nearby: { label: 'Nearby', icon: Bluetooth },
+  remote: { label: 'Remote', icon: Globe }
+}
 
 interface TransferCardProps {
   transfer: TransferRecord
@@ -59,6 +65,16 @@ export function TransferCard({ transfer, index, onPause, onResume, onCancel, onR
               </p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
+              {transfer.connectionMode && (() => {
+                const cfg = modeConfig[transfer.connectionMode]
+                const Icon = cfg.icon
+                return (
+                  <span className={`connection-mode-badge ${transfer.connectionMode}`}>
+                    <Icon className="w-3 h-3" />
+                    {cfg.label}
+                  </span>
+                )
+              })()}
               <StatusBadge status={transfer.status} />
               <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                 {isActive && onPause && <ActionBtn onClick={() => onPause(transfer.id)} title="Pause"><Pause className="w-3.5 h-3.5" /></ActionBtn>}

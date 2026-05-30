@@ -17,6 +17,8 @@ export type TransferStatus =
 
 export type TransferDirection = 'upload' | 'download'
 
+export type ConnectionMode = 'local' | 'nearby' | 'remote'
+
 // ----- Peer Types -----
 
 export type PeerConnectionState =
@@ -36,6 +38,8 @@ export interface PeerInfo {
   lastSeen: number
   trusted: boolean
   connectionState: PeerConnectionState
+  connectionMode?: ConnectionMode
+  capabilities?: ConnectionMode[]
 }
 
 export interface SharedFileInfo {
@@ -65,6 +69,7 @@ export interface TransferRecord {
   progress: number // 0-100
   bytesTransferred: number
   direction: TransferDirection
+  connectionMode: ConnectionMode
   chunkSize: number
   totalChunks: number
   completedChunks: number
@@ -77,6 +82,24 @@ export interface TransferRecord {
   localPath?: string
   tempPath?: string
   errorMessage?: string
+}
+
+export interface DiscoveredPeer {
+  id: string
+  displayName: string
+  connectionMode: ConnectionMode
+  sharedFiles: SharedFileInfo[]
+  addresses?: string[]
+  capabilities?: ConnectionMode[]
+}
+
+export interface ConnectionPayload {
+  version: number
+  peerId: string
+  deviceName: string
+  capabilities: ConnectionMode[]
+  signalingUrl?: string
+  localAddresses?: string[]
 }
 
 export interface ChunkInfo {
@@ -99,6 +122,7 @@ export interface TransferRequest {
 // ----- Settings -----
 
 export interface AppSettings {
+  peerId: string
   displayName: string
   chunkSize: number // bytes, default 256KB
   bandwidthLimit: number // bytes per second, 0 = unlimited
@@ -253,6 +277,20 @@ export interface UBShareAPI {
   connectToPeer: (peerId: string) => Promise<void>
   onPeerListUpdated: (callback: (peers: PeerInfo[]) => void) => () => void
   onPeerStateChanged: (callback: (peerId: string, state: PeerConnectionState) => void) => () => void
+
+  // Discovery
+  startLocalDiscovery: () => Promise<void>
+  stopLocalDiscovery: () => Promise<void>
+  startNearbyDiscovery: () => Promise<void>
+  stopNearbyDiscovery: () => Promise<void>
+  onDiscoveryPeersUpdated: (callback: (peers: DiscoveredPeer[]) => void) => () => void
+
+  // Connection Codes & QR
+  generateConnectionPayload: () => Promise<string>
+  decodeConnectionPayload: (code: string) => Promise<ConnectionPayload | null>
+  generateQRCode: () => Promise<string> // data URL
+  connectFromCode: (code: string) => Promise<void>
+  getPeerIdentity: () => Promise<{ peerId: string; deviceName: string; capabilities: ConnectionMode[] }>
 
   // Transfers
   requestFile: (peerId: string, fileId: string) => Promise<string>

@@ -18,6 +18,7 @@ export const transfers = sqliteTable('transfers', {
   progress: real('progress').notNull().default(0),
   bytesTransferred: integer('bytes_transferred').notNull().default(0),
   direction: text('direction').notNull(), // 'upload' | 'download'
+  connectionMode: text('connection_mode').notNull().default('remote'), // 'local' | 'nearby' | 'remote'
   chunkSize: integer('chunk_size').notNull(),
   totalChunks: integer('total_chunks').notNull(),
   completedChunks: integer('completed_chunks').notNull().default(0),

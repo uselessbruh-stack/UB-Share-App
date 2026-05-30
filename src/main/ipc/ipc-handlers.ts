@@ -8,13 +8,17 @@ import { IPC_CHANNELS } from '@shared/constants'
 import { transferManager } from '../services/transfer-manager'
 import { signalingClient } from '../services/signaling-client'
 import { webrtcManager } from '../services/webrtc-manager'
+import { discoveryManager } from '../services/discovery/discovery-manager'
+import { encodeConnectionPayload, decodeConnectionPayload } from '../services/connection-codec'
+import { generateQRDataUrl } from '../services/qr-service'
+import { generatePeerId, getDeviceCapabilities } from '../services/peer-identity'
 import { peerRepository } from '../db/repositories/peer-repository'
 import { sharedFilesRepository } from '../db/repositories/shared-files-repository'
 import { getSettings, updateSettings } from '../services/settings-service'
 import { getAnalytics } from '../services/analytics-service'
 import { hashFile } from '../services/file-hasher'
 import { getFileInfo, getMimeType } from '../utils/file-utils'
-import type { PeerInfo, SharedFileInfo } from '@shared/types'
+import type { PeerInfo, SharedFileInfo, ConnectionPayload } from '@shared/types'
 import path from 'path'
 
 // In-memory online peer list (synced from signaling client)
@@ -174,6 +178,76 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.APP_VERSION, () => {
     return app.getVersion()
+  })
+
+  // ===== DISCOVERY HANDLERS =====
+
+  ipcMain.handle(IPC_CHANNELS.DISCOVERY_START_LOCAL, async () => {
+    await discoveryManager.startModule('local')
+  })
+
+  ipcMain.handle(IPC_CHANNELS.DISCOVERY_STOP_LOCAL, async () => {
+    await discoveryManager.stopModule('local')
+  })
+
+  ipcMain.handle(IPC_CHANNELS.DISCOVERY_START_NEARBY, async () => {
+    // Bluetooth discovery — placeholder for Phase 4
+    console.log('[IPC] Nearby discovery not yet implemented')
+  })
+
+  ipcMain.handle(IPC_CHANNELS.DISCOVERY_STOP_NEARBY, async () => {
+    console.log('[IPC] Nearby discovery stop — not yet implemented')
+  })
+
+  // ===== CONNECTION HANDLERS =====
+
+  ipcMain.handle(IPC_CHANNELS.CONNECTION_GET_IDENTITY, async () => {
+    const settings = await getSettings()
+    return {
+      peerId: settings.peerId || 'Unknown',
+      deviceName: settings.displayName,
+      capabilities: getDeviceCapabilities()
+    }
+  })
+
+  ipcMain.handle(IPC_CHANNELS.CONNECTION_GENERATE_PAYLOAD, async () => {
+    const settings = await getSettings()
+    const payload: ConnectionPayload = {
+      version: 1,
+      peerId: settings.peerId || 'Unknown',
+      deviceName: settings.displayName,
+      capabilities: getDeviceCapabilities(),
+      signalingUrl: settings.signalingServerUrl
+    }
+    return encodeConnectionPayload(payload)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.CONNECTION_DECODE_PAYLOAD, async (_event, code: string) => {
+    return decodeConnectionPayload(code)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.CONNECTION_GENERATE_QR, async () => {
+    const settings = await getSettings()
+    const payload: ConnectionPayload = {
+      version: 1,
+      peerId: settings.peerId || 'Unknown',
+      deviceName: settings.displayName,
+      capabilities: getDeviceCapabilities(),
+      signalingUrl: settings.signalingServerUrl
+    }
+    return generateQRDataUrl(payload)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.CONNECTION_FROM_CODE, async (_event, code: string) => {
+    const payload = decodeConnectionPayload(code)
+    if (!payload) throw new Error('Invalid connection code')
+
+    // Connect via signaling (Remote Share path)
+    if (payload.signalingUrl) {
+      // Peer should be on the same signaling server
+      // Try to establish WebRTC connection
+      await webrtcManager.connectToPeer(payload.peerId)
+    }
   })
 
   console.log('[IPC] All handlers registered')

@@ -14,6 +14,20 @@ export const IPC_CHANNELS = {
   PEERS_LIST_UPDATED: 'peers:list-updated',
   PEERS_STATE_CHANGED: 'peers:state-changed',
 
+  // Discovery channels
+  DISCOVERY_START_LOCAL: 'discovery:start-local',
+  DISCOVERY_STOP_LOCAL: 'discovery:stop-local',
+  DISCOVERY_START_NEARBY: 'discovery:start-nearby',
+  DISCOVERY_STOP_NEARBY: 'discovery:stop-nearby',
+  DISCOVERY_PEERS_UPDATED: 'discovery:peers-updated',
+
+  // Connection channels
+  CONNECTION_GENERATE_PAYLOAD: 'connection:generate-payload',
+  CONNECTION_DECODE_PAYLOAD: 'connection:decode-payload',
+  CONNECTION_GENERATE_QR: 'connection:generate-qr',
+  CONNECTION_FROM_CODE: 'connection:from-code',
+  CONNECTION_GET_IDENTITY: 'connection:get-identity',
+
   // Transfer channels
   TRANSFER_REQUEST: 'transfer:request',
   TRANSFER_SEND: 'transfer:send',
@@ -51,6 +65,7 @@ export const IPC_CHANNELS = {
 // ----- Default Settings -----
 
 export const DEFAULT_SETTINGS = {
+  peerId: '', // will be generated on first launch
   displayName: `User-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
   chunkSize: 256 * 1024, // 256 KB
   bandwidthLimit: 0, // unlimited
@@ -136,6 +151,6 @@ export const APP_INFO = {
   VERSION: '1.0.0',
   WINDOW_WIDTH: 1200,
   WINDOW_HEIGHT: 800,
-  WINDOW_MIN_WIDTH: 900,
-  WINDOW_MIN_HEIGHT: 600
+  WINDOW_MIN_WIDTH: 500,
+  WINDOW_MIN_HEIGHT: 200
 }

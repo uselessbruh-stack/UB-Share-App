@@ -523,6 +523,7 @@ export class TransferManager extends EventEmitter {
       progress: t.progress,
       bytesTransferred: t.bytesTransferred,
       direction: t.direction,
+      connectionMode: t.connectionMode ?? 'remote',
       chunkSize: t.chunkSize,
       totalChunks: t.totalChunks,
       completedChunks: t.completedChunks,

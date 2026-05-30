@@ -1,11 +1,7 @@
-// ===================================================================
-// UB-Share — Settings Service
-// Loads, saves, and provides default settings
-// ===================================================================
-
 import { app } from 'electron'
 import { settingsRepository } from '../db/repositories/settings-repository'
 import { getDefaultDownloadDir } from '../utils/file-utils'
+import { generatePeerId } from './peer-identity'
 import type { AppSettings } from '@shared/types'
 import { DEFAULT_SETTINGS } from '@shared/constants'
 
@@ -21,6 +17,13 @@ export async function initSettings(): Promise<AppSettings> {
   if (!settings.downloadDir) {
     settings.downloadDir = getDefaultDownloadDir()
     await settingsRepository.set('downloadDir', settings.downloadDir)
+  }
+
+  // Generate persistent peer ID on first launch
+  if (!settings.peerId) {
+    settings.peerId = generatePeerId()
+    await settingsRepository.set('peerId', settings.peerId)
+    console.log(`[Settings] Generated peer ID: ${settings.peerId}`)
   }
 
   cachedSettings = settings

@@ -27,6 +27,20 @@ const api: UBShareAPI = {
   onPeerListUpdated: (cb) => createListener(IPC_CHANNELS.PEERS_LIST_UPDATED, cb),
   onPeerStateChanged: (cb) => createListener(IPC_CHANNELS.PEERS_STATE_CHANGED, cb),
 
+  // ----- Discovery -----
+  startLocalDiscovery: () => ipcRenderer.invoke(IPC_CHANNELS.DISCOVERY_START_LOCAL),
+  stopLocalDiscovery: () => ipcRenderer.invoke(IPC_CHANNELS.DISCOVERY_STOP_LOCAL),
+  startNearbyDiscovery: () => ipcRenderer.invoke(IPC_CHANNELS.DISCOVERY_START_NEARBY),
+  stopNearbyDiscovery: () => ipcRenderer.invoke(IPC_CHANNELS.DISCOVERY_STOP_NEARBY),
+  onDiscoveryPeersUpdated: (cb) => createListener(IPC_CHANNELS.DISCOVERY_PEERS_UPDATED, cb),
+
+  // ----- Connection Codes & QR -----
+  generateConnectionPayload: () => ipcRenderer.invoke(IPC_CHANNELS.CONNECTION_GENERATE_PAYLOAD),
+  decodeConnectionPayload: (code) => ipcRenderer.invoke(IPC_CHANNELS.CONNECTION_DECODE_PAYLOAD, code),
+  generateQRCode: () => ipcRenderer.invoke(IPC_CHANNELS.CONNECTION_GENERATE_QR),
+  connectFromCode: (code) => ipcRenderer.invoke(IPC_CHANNELS.CONNECTION_FROM_CODE, code),
+  getPeerIdentity: () => ipcRenderer.invoke(IPC_CHANNELS.CONNECTION_GET_IDENTITY),
+
   // ----- Transfers -----
   requestFile: (peerId, fileId) => ipcRenderer.invoke(IPC_CHANNELS.TRANSFER_REQUEST, peerId, fileId),
   sendFileToPeer: (peerId, filePath) => ipcRenderer.invoke(IPC_CHANNELS.TRANSFER_SEND, peerId, filePath),

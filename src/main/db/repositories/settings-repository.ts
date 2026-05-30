@@ -44,6 +44,7 @@ export class SettingsRepository {
   async getAppSettings(): Promise<AppSettings> {
     const allSettings = await this.getAll()
     return {
+      peerId: allSettings.peerId ?? DEFAULT_SETTINGS.peerId,
       displayName: allSettings.displayName ?? DEFAULT_SETTINGS.displayName,
       chunkSize: parseInt(allSettings.chunkSize ?? String(DEFAULT_SETTINGS.chunkSize), 10),
       bandwidthLimit: parseInt(allSettings.bandwidthLimit ?? String(DEFAULT_SETTINGS.bandwidthLimit), 10),

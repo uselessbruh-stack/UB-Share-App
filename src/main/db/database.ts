@@ -150,5 +150,13 @@ function runMigrations(database: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_transfer_chunks_transfer_id ON transfer_chunks(transfer_id);
   `)
 
+  // Migration: add connection_mode column (may already exist)
+  try {
+    database.exec(`ALTER TABLE transfers ADD COLUMN connection_mode TEXT NOT NULL DEFAULT 'remote'`)
+    console.log('[DB] Added connection_mode column to transfers')
+  } catch {
+    // Column already exists — safe to ignore
+  }
+
   console.log('[DB] Migrations completed')
 }
